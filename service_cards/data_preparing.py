@@ -84,7 +84,7 @@ def form_test_train_set(docs=None, name="", test_size=0.1):
             # if len(str(row['second']).replace(":", "")) > 0:
             string += " |second " + str(row['second']).replace(":", "")
             # if len(str(row['third']).replace(":", "")) > 0:
-            ###string += " |third " + str(row['third']).replace(":", "")
+            string += " |third " + ""
             # string += " |worker " + str(row['worker_id'])
             # if string != str(row['card_id']).replace(":", ""):
             f.write(string + '\n')
@@ -92,5 +92,22 @@ def form_test_train_set(docs=None, name="", test_size=0.1):
 
     return 'vw_train_rich' + name, 'vw_test_rich' + name
 
-def form_castom_set(docs=None, name="", test_size=0.1):
-    pass
+def form_castom_set(docs=None, name=""):
+    poor_docs = docs[docs['category_id'] == "#"]
+    f = open('vw_castom' + name, 'w')
+    for index, row in poor_docs.iterrows():
+        string = ""
+        string += str(row['card_id']).replace(":", "")
+        # if len(str(row['text']).replace(":", "")) > 0:
+        string += " |text " + str(row['text']).replace(":", "")
+        # if len(str(row['first']).replace(":", "")) > 0:
+        string += " |first " + str(row['first']).replace(":", "")
+        # if len(str(row['second']).replace(":", "")) > 0:
+        string += " |second " + str(row['second']).replace(":", "")
+        # if len(str(row['third']).replace(":", "")) > 0:
+        string += " |third " + str(row['third']).replace(":", "")
+        # string += " |worker " + str(row['worker_id'])
+        # if string != str(row['card_id']).replace(":", ""):
+        f.write(string + '\n')
+    f.close()
+    return 'vw_castom' + name
