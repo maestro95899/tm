@@ -84,7 +84,7 @@ def form_test_train_set(docs=None, name="", test_size=0.1):
             # if len(str(row['second']).replace(":", "")) > 0:
             string += " |second " + str(row['second']).replace(":", "")
             # if len(str(row['third']).replace(":", "")) > 0:
-            string += " |third " + ""
+            #string += " |third " + ""
             # string += " |worker " + str(row['worker_id'])
             # if string != str(row['card_id']).replace(":", ""):
             f.write(string + '\n')
@@ -105,7 +105,7 @@ def form_castom_set(docs=None, name=""):
         # if len(str(row['second']).replace(":", "")) > 0:
         string += " |second " + str(row['second']).replace(":", "")
         # if len(str(row['third']).replace(":", "")) > 0:
-        string += " |third " + str(row['third']).replace(":", "")
+        #string += " |third " + str(row['third']).replace(":", "")
         # string += " |worker " + str(row['worker_id'])
         # if string != str(row['card_id']).replace(":", ""):
         f.write(string + '\n')

@@ -29,5 +29,7 @@ def create_and_learn_PLSA(name="", topic_number=750, num_collection_passes=1):
 
     model_plsa.fit_offline(batch_vectorizer=batch_vectorizer_train, num_collection_passes=num_collection_passes)
 
-    return model_plsa
+    theta_train = model_plsa.transform(batch_vectorizer=batch_vectorizer_train)
+
+    return model_plsa, theta_train
 
