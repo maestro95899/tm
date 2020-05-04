@@ -142,6 +142,7 @@ def get_answers_on_castom_advanced(inf, hand_marking=True, count=10, cards_list=
     # разметим классификацию кастомных услуг
     f = open("разметка_кастомных_услуг.csv", 'w')
     if not cards_list:
+        random.seed(23)
         cards_list = random.sample(list(inf['card2topic_castom'].keys()), count)
 
     pos = 0
@@ -152,7 +153,7 @@ def get_answers_on_castom_advanced(inf, hand_marking=True, count=10, cards_list=
               "\n настоящий: \t ", inf['card2rubric'][card],
               "\n name: ", inf['card2name'][card], "\n", inf['card2text'][card], "\n")
         verdict = input()
-        if verdict == 1:
+        if verdict == '1':
             pos += 1
 
         f.write(

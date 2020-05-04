@@ -60,13 +60,13 @@ def form_test_train_set(docs=None, name="", test_size=0.1):
             string = ""
             string += str(row['card_id']).replace(":", "")
             # if len(str(row['text']).replace(":", "")) > 0:
-            string += " |text " + str(row['text']).replace(":", "")
+            string += " |@text " + str(row['text']).replace(":", "")
             # if len(str(row['first']).replace(":", "")) > 0:
-            string += " |first " + str(row['first']).replace(":", "")
+            string += " |@first " + str(row['first']).replace(":", "")
             # if len(str(row['second']).replace(":", "")) > 0:
-            string += " |second " + str(row['second']).replace(":", "")
+            string += " |@second " + str(row['second']).replace(":", "")
             # if len(str(row['third']).replace(":", "")) > 0:
-            string += " |third " + str(row['third']).replace(":", "")
+            string += " |@third " + str(row['third']).replace(":", "")
             # string += " |worker " + str(row['worker_id'])
             # if string != str(row['card_id']).replace(":", ""):
             f.write(string + '\n')
@@ -78,13 +78,13 @@ def form_test_train_set(docs=None, name="", test_size=0.1):
             string = ""
             string += str(row['card_id']).replace(":", "")
             # if len(str(row['text']).replace(":", "")) > 0:
-            string += " |text " + str(row['text']).replace(":", "")
+            string += " |@text " + str(row['text']).replace(":", "")
             # if len(str(row['first']).replace(":", "")) > 0:
-            string += " |first " + str(row['first']).replace(":", "")
+            string += " |@first " + str(row['first']).replace(":", "")
             # if len(str(row['second']).replace(":", "")) > 0:
-            string += " |second " + str(row['second']).replace(":", "")
+            string += " |@second " + str(row['second']).replace(":", "")
             # if len(str(row['third']).replace(":", "")) > 0:
-            #string += " |third " + ""
+            #string += " |@third " + ""
             # string += " |worker " + str(row['worker_id'])
             # if string != str(row['card_id']).replace(":", ""):
             f.write(string + '\n')
@@ -99,13 +99,13 @@ def form_castom_set(docs=None, name=""):
         string = ""
         string += str(row['card_id']).replace(":", "")
         # if len(str(row['text']).replace(":", "")) > 0:
-        string += " |text " + str(row['text']).replace(":", "")
+        string += " |@text " + str(row['text']).replace(":", "")
         # if len(str(row['first']).replace(":", "")) > 0:
-        string += " |first " + str(row['first']).replace(":", "")
+        string += " |@first " + str(row['first']).replace(":", "")
         # if len(str(row['second']).replace(":", "")) > 0:
-        string += " |second " + str(row['second']).replace(":", "")
+        string += " |@second " + str(row['second']).replace(":", "")
         # if len(str(row['third']).replace(":", "")) > 0:
-        #string += " |third " + str(row['third']).replace(":", "")
+        #string += " |@third " + str(row['third']).replace(":", "")
         # string += " |worker " + str(row['worker_id'])
         # if string != str(row['card_id']).replace(":", ""):
         f.write(string + '\n')
