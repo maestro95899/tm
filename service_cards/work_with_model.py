@@ -1,6 +1,15 @@
-import pandas as pd
+import importlib
+from IPython.display import clear_output
+import random
+
 import artm
 import random
+
+import data_preparing
+import artm_model
+
+importlib.reload(data_preparing)
+importlib.reload(artm_model)
 
 class exp_info():
     def __init__():
@@ -120,6 +129,23 @@ def measure_accuracy_on_test(inf):
                 #      inf['card2text'][key], "\n")
     print(pos, " / ", n, pos / n)
 
+def accuracy_on_test(inf, prediction, debug_mode=False):
+    # accuracy точность на тестовой выборке
+    n = 0
+    pos = 0
+    for key, value in inf['card2topic_test'].items():
+        n += 1
+        if prediction[key] == inf['card2rubric'][key]:
+            pos += 1
+        else:
+            if debug_mode:
+                if n % 1000 == 0:
+                    print("prediction: \t", prediction[key],
+                            "!= \n", "val \t\t", inf['card2rubric'][key], "\n on ",
+                            inf['card2text'][key], "\n")
+    print(pos, " / ", n, pos / n)
+    return pos / n
+
 def get_answers_on_castom(inf):
     # посмотрим как классифицировались кастомные услуги
     f = open("разметка_кастомных_услуг.csv", 'w')
@@ -164,3 +190,98 @@ def get_answers_on_castom_advanced(inf, hand_marking=True, count=10, cards_list=
         )
     f.close()
     print(pos, " / ", count, pos / count)
+
+def do_marking_on_castom(inf, pred_card2rubric, count=10):
+    f = open("разметка_кастомных_услуг.csv", 'w')
+    random.seed(23)
+    cards_list = random.sample(list(pred_card2rubric.keys()), count)
+
+    pos = 0
+    n = 0
+    for card in cards_list:
+        n += 1
+        print(n, " \nprediction: \t", pred_card2rubric[card],
+              "\n настоящий: \t ", inf['card2rubric'][card],
+              "\n name: ", inf['card2name'][card], "\n", inf['card2text'][card], "\n")
+        verdict = input()
+        if verdict == '1':
+            pos += 1
+
+        f.write(
+            str(pred_card2rubric[card]) + "\t" +
+            str(inf['card2name'][card]) + "\t" +
+            str(inf['card2text'][card]) + '\t' +
+            verdict + '\n'
+        )
+    f.close()
+    print(pos, " / ", count, pos / count)
+
+def get_p_cd_third(inf, path):
+    batch_vectorizer = None
+    batch_vectorizer = artm.BatchVectorizer(data_path='./' + path,
+                                            data_format='vowpal_wabbit',
+                                            target_folder='folder' + path)
+    return inf['model'].transform(batch_vectorizer=batch_vectorizer, predict_class_id='@third')
+
+def get_prediction_p_cd(inf, p_cd):
+    card2rubric = {}
+    rubric_list = p_cd.T.columns
+    for card_id in p_cd.columns:
+        pre_rubric = inf['card2rubric'][card_id]
+        card2rubric[card_id] = pre_rubric[0: pre_rubric.rfind("/")] + "/" + rubric_list[p_cd[card_id].argmax()]
+    return card2rubric
+
+def make_prediction_by_p_cd(inf, mode='castom'): #castom/train/test
+    inf['p_cd_' + mode] = get_p_cd_third(inf, inf['path_' + mode])
+    inf['p_cd_card2rubric_' + mode] = get_prediction_p_cd(inf, inf['p_cd_' + mode])
+
+def make_prediction_by_topic2rubric(inf, mode='test'): #castom/train/test
+    card2rubric = {}
+    for card_id, topic in inf['card2topic_' + mode].items():
+        card2rubric[card_id] = inf['topic2rubric'][topic]
+    return card2rubric
+
+def compare_quality(inf):
+    prediction = make_prediction_by_topic2rubric(inf, mode='test')
+    acc = accuracy_on_test(inf, prediction)
+    print('prediction_by_topic2rubric:', acc)
+
+    make_prediction_by_p_cd(inf, mode='test')
+    acc = accuracy_on_test(inf, inf['p_cd_card2rubric_test'], debug_mode=False)
+    print('prediction_by_p_cd:', acc)
+
+def exp_weigth(exp_name='weight_1_0_1_1', weigths=[1., 0., 1., 1.], ):
+    inf = {}
+    inf['exp_name'] = exp_name
+    inf['test_size'] = 0.1
+    inf['num_collection_passes'] = 15
+    inf['topic_number'] = 750
+    inf['data_path'] = "service_cards_tokenised_remont_only"
+
+    inf['docs'] = data_preparing.read_and_prepared(inf['data_path'])
+    inf['path_train'], inf['path_test'] = data_preparing.form_test_train_set(docs=inf['docs'], name=inf['exp_name'], test_size=inf['test_size'])
+    inf['path_castom'] = data_preparing.form_castom_set(inf['docs'], name=inf['exp_name'])
+    inf['model'], inf['theta_train'] = artm_model.create_and_learn_PLSA_class_ids_weigth(
+                                                                inf['path_train'],
+                                                                topic_number=inf['topic_number'],
+                                                                num_collection_passes=inf['num_collection_passes'],
+                                                                weigths=weigths
+                                                             )
+
+    inf['theta_test'] = get_theta_from_vw(inf, inf['path_test'])
+    inf['theta_castom'] = get_theta_from_vw(inf, inf['path_castom'])
+    clear_output(True)
+
+    make_docs_dicts(inf)
+    form_card2topic(inf)
+    get_topic2rubric(inf)
+    #wwm.measure_accuracy_on_test(inf)
+    make_prediction_by_p_cd(inf, mode='castom')
+    inf['method_topic2rubric_card2rubric_castom'] = make_prediction_by_topic2rubric(inf, mode='castom')
+    make_prediction_by_p_cd(inf, mode='test')
+    inf['method_topic2rubric_card2rubric_test'] = make_prediction_by_topic2rubric(inf, mode='test')
+    accuracy_on_test(inf, inf['method_topic2rubric_card2rubric_test'])
+    accuracy_on_test(inf, inf['p_cd_card2rubric_test'])
+
+
+
