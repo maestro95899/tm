@@ -48,6 +48,32 @@ def read_and_prepared(name):
 
     return docs
 
+def read_and_prepared_marking(name):
+    data = pd.read_table(name)
+
+    docs = pd.DataFrame()
+    docs = data[(pd.notnull(data['name']) | pd.notnull(data['description'])) & (data.status == 3)]
+    docs['text'] = docs['name'].map(lambda x: x if pd.notnull(x) else "") + " " + docs['description'].map(
+        lambda x: x if pd.notnull(x) else "")
+
+    docs['first'] = docs['parent_id'].map(lambda x: x.split('/')[1] if pd.notnull(x) else None)
+    docs['first'][pd.isnull(docs['first'])] = docs['category_id'][pd.isnull(docs['first'])].map(
+        lambda x: x.split('/')[1] if pd.notnull(x) else "")
+
+    docs['second'] = docs['parent_id'].map(get_second)
+    docs['second'][docs['second'] == ""] = docs['category_id'][docs['second'] == ""].map(get_second)
+
+    docs['third'] = docs['parent_id'].map(get_third)
+    docs['third'][docs['third'] == ""] = docs['category_id'][docs['third'] == ""].map(get_third)
+
+
+    # профильтруем по первой категории и возьмем только remont-i-stroitel_stvo
+    docs = docs[docs['first'] == "remont-i-stroitel_stvo"]
+
+    docs.to_csv("docs_csv" + name + ".csv")
+
+    return docs
+
 def form_test_train_set(docs=None, name="", test_size=0.1):
     rich_docs = docs[docs['third'] != ""]
 
