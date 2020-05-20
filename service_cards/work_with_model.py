@@ -3,7 +3,7 @@ from IPython.display import clear_output
 import random
 
 import artm
-import random
+import pandas as pd
 
 import data_preparing
 import artm_model
@@ -50,7 +50,7 @@ def get_theta_from_vw(inf, path):
                                                   target_folder='folder' + path)
     return inf['model'].transform(batch_vectorizer=batch_vectorizer)
 
-def form_card2topic(inf,):
+def form_card2topic(inf, tr_shyness=0.0):
     inf['card2topic_castom'] = {}
     for card_id in inf['theta_castom'].columns:
         inf['card2topic_castom'][card_id] = inf['theta_castom'][card_id].argmax()
@@ -145,6 +145,148 @@ def accuracy_on_test(inf, prediction, debug_mode=False):
                             inf['card2text'][key], "\n")
     print(pos, " / ", n, pos / n)
     return pos / n
+"""
+def bad_scores_on_test(inf, prediction, debug_mode=False):
+    # точность на тестовой выборке
+    n = 0  # всего услуг
+    tp = 0  # была попытка угадать, угадали
+    fp = 0  # была попытка угадать, не угадали
+    fn = 0  # не пытались угадать
+    tn = 0  # не пытались угадать, рубрику определить невозможно
+    #pos = 0
+    for key, value in inf['card2topic_test'].items():
+        n += 1
+        if prediction[key]:
+            if prediction[key] == inf['card2rubric'][key]:
+                tp += 1
+            if prediction[key] != inf['card2rubric'][key]:
+                fp += 1
+        if prediction[key] is None:
+            if prediction[key] == inf['card2rubric'][key]:
+                tn += 1
+            if prediction[key] != inf['card2rubric'][key]:
+                fn += 1
+                if n % 1000 == 0:
+                    print(prediction[key])
+    return tp, fp, fn, tn
+
+def bad_precision_on_test(inf, prediction, ):
+    tp, fp, fn, tn = scores_on_test(inf, prediction)
+    return tp / (fp + tp)
+
+def bad_recall_on_test(inf, prediction, ):
+    tp, fp, fn, tn = scores_on_test(inf, prediction)
+    return tp / (fn + tp)
+
+def bad_acc_on_test(inf, prediction, ):
+    tp, fp, fn, tn = scores_on_test(inf, prediction)
+    return (tp + tn) / (tp + fp + fn + tn)
+
+def bad_F1_on_test(inf, prediction, ):
+    tp, fp, fn, tn = scores_on_test(inf, prediction)
+    precision = precision_on_test(inf, prediction)
+    recall = recall_on_test(inf, prediction)
+    return 2 * precision * recall / (precision + recall)
+
+def bad_calc_all_scores(inf, prediction,):
+    tp, fp, fn, tn = scores_on_test(inf, prediction)
+    precision = precision_on_test(inf, prediction)
+    recall = recall_on_test(inf, prediction)
+    F1 = F1_on_test(inf, prediction)
+    print(inf['exp_name'])
+    print('precision', precision)
+    print('recall', recall)
+    print('F1', F1)
+    print('tp, fp, fn, tn :=', tp, fp, fn, tn)
+"""
+
+def scores_on_marking(inf, marking_table, prediction, debug_mode=False):
+    # на разметке кастомных услуг Антона
+    marking = marking_table.fillna(value="None")
+    len_marking = marking.shape[0]
+    intersection = len(set(marking.card_id.values) & set(prediction.keys()))
+    n = 0  # всего услуг
+    tfind = 0  # была попытка угадать, угадали
+    ffind = 0   # была попытка угадать, не угадали
+    ffindr = 0  # пытались угадать рубрику, а этокастомная услуга
+    fignore = 0  # не пытались угадать, но рубрика есть
+    tignore = 0  # не пытались угадать, и рубрику определить невозможно
+    # pos = 0
+    for index, row in marking.iterrows():
+        key = row['card_id']
+        if key in prediction:
+            n += 1
+            if key in prediction and prediction[key] and prediction[key][-4:] != 'None':
+                if "/" + str(prediction[key]) == row['category_id']:
+                    tfind += 1
+                elif row['category_id'] == 'None':
+                    ffindr += 1
+                elif prediction[key] != row['category_id']:
+                    ffind += 1
+            if key in prediction and not prediction[key] or prediction[key][-4:] == 'None':
+                if row['category_id'] == 'None':
+                    tignore += 1
+                else:
+                    fignore += 1
+    return tfind, ffind, ffindr, fignore, tignore, n
+
+def scores_on_test(inf, prediction, debug_mode=False):
+    # на тестовой выборке
+    n = 0  # всего услуг
+    tfind = 0  # была попытка угадать, угадали
+    ffind = 0   # была попытка угадать, не угадали
+    ffindr = 0  # пытались угадать рубрику, а этокастомная услуга
+    fignore = 0  # не пытались угадать, но рубрика есть
+    tignore = 0  # не пытались угадать, и рубрику определить невозможно
+    # pos = 0
+    for key, value in inf['card2topic_test'].items():
+        n += 1
+        if prediction[key] and prediction[key][-4:] != 'None':
+            if prediction[key] == inf['card2rubric'][key]:
+                tfind += 1
+            elif inf['card2rubric'][key][-4:] == 'None':
+                ffindr += 1
+            elif prediction[key] != inf['card2rubric'][key]:
+                ffind += 1
+
+        if not prediction[key] or prediction[key][-4:] == 'None':
+            if inf['card2rubric'][key][-4:] == 'None':
+                tignore += 1
+            else:
+                fignore += 1
+                if n%1000==1000:
+                    print(inf['card2rubric'][key])
+    return tfind, ffind, ffindr, fignore, tignore, n
+
+def precision_on_test(inf, prediction, ):
+    tfind, ffind, ffindr, fignore, tignore, n = scores_on_test(inf, prediction)
+    return tfind / (tfind + ffind + ffindr + 0.0001)
+
+def recall_on_test(inf, prediction, ):
+    tfind, ffind, ffindr, fignore, tignore, n = scores_on_test(inf, prediction)
+    return tfind / (ffind + tfind + fignore  + 0.0001)
+
+def calc_all_scores(inf, prediction, printed=True):
+    tfind, ffind, ffindr, fignore, tignore, n = scores_on_test(inf, prediction)
+    precision =tfind / (tfind + ffind + ffindr + 0.0001)
+    recall = tfind / (ffind + tfind + fignore + 0.0001)
+    if print:
+        print(inf['exp_name'])
+        print('precision', precision)
+        print('recall', recall)
+        print('tfind, ffind, ffindr, fignore, tignore, n :=', tfind, ffind, ffindr, fignore, tignore, n)
+    return precision, recall
+
+def calc_all_scores_on_marking(inf, marking_table, prediction, printed=True):
+    tfind, ffind, ffindr, fignore, tignore, n = scores_on_marking(inf, marking_table, prediction)
+    precision = tfind / (tfind + ffind + ffindr + 0.0001)
+    recall = tfind / (ffind + tfind + fignore + 0.0001)
+    if printed:
+        print(inf['exp_name'])
+        print('precision', precision)
+        print('recall', recall)
+        print('tfind, ffind, ffindr, fignore, tignore, n :=', tfind, ffind, ffindr, fignore, tignore, n)
+    return precision, recall
 
 def get_answers_on_castom(inf):
     # посмотрим как классифицировались кастомные услуги
@@ -223,19 +365,38 @@ def get_p_cd_third(inf, path):
                                             target_folder='folder' + path)
     return inf['model'].transform(batch_vectorizer=batch_vectorizer, predict_class_id='@third')
 
-def get_prediction_p_cd(inf, p_cd):
+def get_prediction_p_cd(inf, p_cd, tr_shyness=0.0):
     card2rubric = {}
     rubric_list = p_cd.T.columns
     for card_id in p_cd.columns:
         pre_rubric = inf['card2rubric'][card_id]
-        card2rubric[card_id] = pre_rubric[0: pre_rubric.rfind("/")] + "/" + rubric_list[p_cd[card_id].argmax()]
+        if p_cd[card_id].max() >= tr_shyness:
+            card2rubric[card_id] = pre_rubric[0: pre_rubric.rfind("/")] + "/" + rubric_list[p_cd[card_id].argmax()]
+        else:
+            card2rubric[card_id] = pre_rubric[0: pre_rubric.rfind("/")] + "/None"
     return card2rubric
 
 def make_prediction_by_p_cd(inf, mode='castom'): #castom/train/test
     inf['p_cd_' + mode] = get_p_cd_third(inf, inf['path_' + mode])
     inf['p_cd_card2rubric_' + mode] = get_prediction_p_cd(inf, inf['p_cd_' + mode])
 
-def make_prediction_by_topic2rubric(inf, mode='test'): #castom/train/test
+def make_shy_prediction_by_p_cd(inf, mode='castom', tr_shyness=0.): #castom/train/test
+    inf['p_cd_' + mode] = get_p_cd_third(inf, inf['path_' + mode])
+    inf['p_cd_card2rubric_' + mode] = get_prediction_p_cd(inf, inf['p_cd_' + mode], tr_shyness=tr_shyness)
+    return inf['p_cd_card2rubric_' + mode]
+
+def make_shy_prediction_by_topic2rubric(inf, mode='test', tr_shyness=0.0): #castom/train/test
+    card2rubric = {}
+    for card_id in inf['theta_' + mode].columns:
+        if inf['theta_' + mode][card_id].max() >= tr_shyness:
+            card2rubric[card_id] = inf['topic2rubric'][inf['theta_' + mode][card_id].argmax()]
+        else:
+            pre_rubric = inf['card2rubric'][card_id]
+            card2rubric[card_id] = pre_rubric[0: pre_rubric.rfind("/")] + "/None"
+    inf['ModeStickTM_pred_card2rubric_' + mode] = card2rubric
+    return card2rubric
+
+def make_prediction_by_topic2rubric(inf, mode='test', tr_shyness=0.0): #castom/train/test
     card2rubric = {}
     for card_id, topic in inf['card2topic_' + mode].items():
         card2rubric[card_id] = inf['topic2rubric'][topic]
@@ -283,5 +444,34 @@ def exp_weigth(exp_name='weight_1_0_1_1', weigths=[1., 0., 1., 1.], ):
     accuracy_on_test(inf, inf['method_topic2rubric_card2rubric_test'])
     accuracy_on_test(inf, inf['p_cd_card2rubric_test'])
 
+
+def measure_score_on_marking(inf, path, ModeStickTM_pred=None, ProbStickTM_pred=None): # только для разметки Антона
+    marking = pd.read_csv(path, sep='\t')
+    marking_remont = marking[marking['card_parent_id'].map(lambda x: str(x).find('/remont-i-stroitel_stvo') != -1)]
+    marking_remont_rubric = marking_remont[marking_remont.category_id.notna()]
+
+    if ModeStickTM_pred is None:
+        ModeStickTM_pred = make_shy_prediction_by_topic2rubric(inf, mode='castom', tr_shyness=0.0)
+    if ProbStickTM_pred is None:
+        ProbStickTM_pred = make_shy_prediction_by_p_cd(inf, mode='castom', tr_shyness=0.09)
+
+    print("Все карточки подряд")
+    print('ModeStickTM')
+    calc_all_scores_on_marking(inf, marking_remont, ModeStickTM_pred)
+    print('\nProbStickTM')
+    calc_all_scores_on_marking(inf, marking_remont, ProbStickTM_pred)
+
+    print("\n\n только те карточки, для которых можно найти услугу")
+    print('ModeStickTM')
+    calc_all_scores_on_marking(inf, marking_remont_rubric, ModeStickTM_pred)
+    print('\nProbStickTM')
+    calc_all_scores_on_marking(inf, marking_remont_rubric, ProbStickTM_pred)
+
+def measure_pred_score_on_marking(inf, marking_remont, prediction):
+    marking_remont_rubric = marking_remont[marking_remont.category_id.notna()]
+
+    precision_all, recall_all = calc_all_scores_on_marking(inf, marking_remont, prediction, printed=False)
+    precision_on_rubric_cards, recall_on_rubric_cards = calc_all_scores_on_marking(inf, marking_remont_rubric, prediction, printed=False)
+    return precision_all, recall_all, precision_on_rubric_cards, recall_on_rubric_cards
 
 
